@@ -1,0 +1,29 @@
+name: Deploy to Linode
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+
+      - name: SSH into EC2 and build Docker image
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            cd /home/githubrunner/framework-api
+            git pull
+            docker build -t currikiprod-api .
+
+            echo "Updating Docker Swarm Stack..."
+            # Updating Server
+            # docker service update --force --image currikiprod-api:latest currikistack_currikiprod-api
+            
+            
+            
