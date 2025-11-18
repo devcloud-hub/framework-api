@@ -20,7 +20,7 @@ jobs:
         run: |
             cd /home/githubrunner/framework-api
             git pull
-            docker build -t currikiprod-api .
+            docker build -t currikiprod-api -f Dockerfile.8.1 .
 
             echo "Updating Docker Swarm Stack..."
             # Updating Server
