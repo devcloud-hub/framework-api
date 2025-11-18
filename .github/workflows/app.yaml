@@ -21,10 +21,19 @@ jobs:
             cd /home/githubrunner/framework-api
             git pull
             docker build -t currikiprod-api -f Dockerfile.8.1 .
+            docker tag currikiprod-api quay.io/curriki/api:frame-new
+            docker push quay.io/curriki/api:frame-new
+
+            docker build -t currikiprod-cron -f Dockerfile.cron.8.1 .
+            docker tag currikiprod-cron quay.io/curriki/cron:frame-new
+            docker push quay.io/curriki/cron:frame-new
 
             echo "Updating Docker Swarm Stack..."
             # Updating Server
-            # docker service update --force --image currikiprod-api:latest currikistack_currikiprod-api
+            docker service update --image quay.io/curriki/api:frame-new currikistack_currikiprod-api
+            docker service update --image quay.io/curriki/cron:frame-new currikistack_currikiprod-cron
+            docker service update --image quay.io/curriki/api:frame-new currikistack_currikiprod-migrate
+            docker service update --image quay.io/curriki/api:frame-new currikistack_currikiprod-queue
             
             
             
