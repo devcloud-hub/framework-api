@@ -26,7 +26,10 @@ jobs:
 
             echo "Updating Docker Swarm Stack..."
             # Updating Server
+            docker service update --image quay.io/curriki/api:frame-new currikistack_currikiprod-migrate
             docker service update --image quay.io/curriki/api:frame-new currikistack_currikiprod-api
+            docker service update --image quay.io/curriki/api:frame-new currikistack_currikiprod-queue
+            docker service update --image quay.io/curriki/api:frame-new currikistack_currikiprod-cron
 
             
             
