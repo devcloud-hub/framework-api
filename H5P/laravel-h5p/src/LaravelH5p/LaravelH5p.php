@@ -305,7 +305,11 @@ class LaravelH5p
 
         $settings['core']['styles'][] = self::get_laravelh5p_url('/css/laravel-h5p.css');
 
-        foreach (H5PCore::$styles as $style) {
+        $coreStyles = array_merge(H5PCore::$styles, array_diff(
+            ['styles/h5p-theme-variables.css', 'styles/h5p-fonts.css', 'styles/h5p-theme.css'],
+            H5PCore::$styles
+        ));
+        foreach ($coreStyles as $style) {
             $settings['core']['styles'][] = self::get_h5pcore_url('/' . $style);
         }
         foreach (H5PCore::$scripts as $script) {
