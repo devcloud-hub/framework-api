@@ -48,6 +48,18 @@ class LaravelH5p
     public static $settings = null;
     public static $editorStorage = null;
 
+    protected static $h5p_http_feature_policy = array(
+        'accelerometer' => '*',
+        'autoplay' => '*',
+        'camera' => '*',
+        'clipboard-write' => '*',
+        'fullscreen' => '*',
+        'geolocation' => '*',
+        'gyroscope' => '*',
+        'magnetometer' => '*',
+        'microphone' => '*'
+    );
+
     public function __construct()
     {
         self::$interface = new LaravelH5pRepository();
@@ -406,13 +418,22 @@ class LaravelH5p
         // Getting author's user id
         $author_id = (int)(is_array($content) ? $content['user_id'] : $content->user_id);
 
+        // Build the "allow" attribute string from the feature policy map
+        $allow_attribute = implode('; ', array_map(
+            function ($feature, $value) {
+                return $feature . ' ' . $value;
+            },
+            array_keys(self::$h5p_http_feature_policy),
+            self::$h5p_http_feature_policy
+        ));
+
         // Add JavaScript settings for this content
         $settings = array(
             'library' => H5PCore::libraryToString($content['library']),
             'jsonContent' => $safe_parameters,
             'fullScreen' => $content['library']['fullscreen'],
             'exportUrl' => config('laravel-h5p.h5p_export') ? config('app.url') . '/api/v1/h5p/export/' . $content['id'] : '',
-            'embedCode' => '<iframe src="' . config('laravel-h5p.FRONT_END_URL') . '/h5p/embed/' . $content['id'] . '" width=":w" height=":h" frameborder="0" allowfullscreen="allowfullscreen"></iframe>',
+            'embedCode' => '<iframe src="' . config('laravel-h5p.FRONT_END_URL') . '/h5p/embed/' . $content['id'] . '" width=":w" height=":h" frameborder="0" allowfullscreen="allowfullscreen" allow="' . $allow_attribute . '"></iframe>',
             'resizeCode' => '<script src="' . self::get_h5pcore_url('/js/h5p-resizer.js') . '" charset="UTF-8"></script>',
             'url' => route('h5p.embed', ['id' => $content['id']]),
             'title' => $content['title'],
