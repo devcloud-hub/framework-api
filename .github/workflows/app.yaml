@@ -24,7 +24,7 @@ jobs:
             docker tag currikiprod-api quay.io/curriki/api:frame-new
             docker push quay.io/curriki/api:frame-new
 
-            docker build --build-arg H5PBRANCH=main -t currikiprod-cron -f Dockerfile.cron.8.1 .
+            docker build -t currikiprod-cron -f Dockerfile.cron.8.1 .
             docker tag currikiprod-cron quay.io/curriki/api:frame-cron-new
             docker push quay.io/curriki/api:frame-cron-new
 
