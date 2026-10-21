@@ -1,14 +1,4 @@
-# Critical PHP RCE fix (CVE-2026-109618, CVE-2026-109619): upgrades the base to 8.2.35.
-# Stopgap until the fixed official image is published; see php-security-patch.sh.
-FROM php:8.2.34-fpm-bookworm AS php-base
-ENV PHP_VERSION=8.2.35 \
-    PHP_URL="https://www.php.net/distributions/php-8.2.35.tar.xz" \
-    PHP_ASC_URL="https://www.php.net/distributions/php-8.2.35.tar.xz.asc" \
-    PHP_SHA256="5737b98601fe5ab1b8c5db0c82ed3158acb9283ed3081ffe2faffb9ac81455e6"
-COPY php-security-patch.sh /tmp/
-RUN sh /tmp/php-security-patch.sh && rm /tmp/php-security-patch.sh
-
-FROM php-base
+FROM php:8.2.35-fpm-bookworm
 
 USER root
 
