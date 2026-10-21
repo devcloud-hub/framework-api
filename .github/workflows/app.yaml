@@ -6,30 +6,56 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+# One deploy at a time; a newer push waits for the running one instead of racing it
+concurrency:
+  group: deploy-linode
+  cancel-in-progress: false
 
 jobs:
   deploy:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # Don't leave the job token in .git/config, where a build could pick it up
+          persist-credentials: false
 
-
-      - name: Deploy
+      - name: Build images
         run: |
-            cd /home/githubrunner/framework-api
-            git pull
             docker build -t currikiprod-api -f Dockerfile.8.2 .
             docker build -t currikiprod-cron -f Dockerfile.cron.8.2 .
 
-            # Fail before pushing if the zz-security.ini hardening is not active
+      # Fail before pushing if the zz-security.ini hardening is not active
+      # or the image contains repo metadata, env files or keys
+      - name: Verify PHP hardening and no secrets in images
+        run: |
             for image in currikiprod-api currikiprod-cron; do
               docker run --rm --entrypoint php "$image" -r '
                 echo "$argv[1]: PHP ", PHP_VERSION, PHP_EOL;
                 $bad = ini_get("session.upload_progress.enabled") || ini_get("expose_php") || function_exists("shell_exec");
                 exit($bad ? 1 : 0);' "$image"
+
+              found="$(docker run --rm --entrypoint sh "$image" -c '
+                cd /var/www/html && find . -path ./vendor -prune -o \
+                  \( -name .git -o -name ".env" -o -name ".env.*" -o -name "*.pem" -o -name "*.key" -o -name "id_rsa*" -o -name auth.json \) -print')"
+              if [ -n "$found" ]; then
+                echo "::error::$image contains files that must not ship:"
+                echo "$found"
+                exit 1
+              fi
             done
+
+      - name: Push to quay.io
+        env:
+          QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+          QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+        run: |
+            echo "$QUAY_PASSWORD" | docker login quay.io -u "$QUAY_USERNAME" --password-stdin
 
             docker tag currikiprod-api quay.io/curriki/api:frame-new
             docker push quay.io/curriki/api:frame-new
@@ -37,13 +63,30 @@ jobs:
             docker tag currikiprod-cron quay.io/curriki/api:frame-cron-new
             docker push quay.io/curriki/api:frame-cron-new
 
+            docker logout quay.io
+
+      # Deploy by digest so Swarm runs exactly the images built above
+      - name: Update Docker Swarm stack
+        env:
+          SSH_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
+        run: |
+            api_image="$(docker inspect --format '{{index .RepoDigests 0}}' quay.io/curriki/api:frame-new)"
+            cron_image="$(docker inspect --format '{{index .RepoDigests 0}}' quay.io/curriki/api:frame-cron-new)"
+            echo "api:  $api_image"
+            echo "cron: $cron_image"
+
+            install -m 700 -d ~/.ssh
+            printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+            chmod 600 ~/.ssh/deploy_key
+            printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
             echo "Updating Docker Swarm Stack..."
-            # Updating Server
-            docker service update --image quay.io/curriki/api:frame-new currikistack_currikiprod-migrate
-            docker service update --image quay.io/curriki/api:frame-new currikistack_currikiprod-api
-            docker service update --image quay.io/curriki/api:frame-new currikistack_currikiprod-queue
-            docker service update --image quay.io/curriki/api:frame-cron-new currikistack_currikiprod-cron
-
-
-
-
+            ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" sh -eu <<EOF
+            docker service update --image "$api_image" currikistack_currikiprod-migrate
+            docker service update --image "$api_image" currikistack_currikiprod-api
+            docker service update --image "$api_image" currikistack_currikiprod-queue
+            docker service update --image "$cron_image" currikistack_currikiprod-cron
+            EOF
