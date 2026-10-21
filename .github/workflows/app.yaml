@@ -20,8 +20,8 @@ jobs:
         run: |
             cd /home/githubrunner/framework-api
             git pull
-            docker build -t currikiprod-api -f Dockerfile.8.1 .
-            docker build -t currikiprod-cron -f Dockerfile.cron.8.1 .
+            docker build -t currikiprod-api -f Dockerfile.8.2 .
+            docker build -t currikiprod-cron -f Dockerfile.cron.8.2 .
 
             # Fail before pushing if the zz-security.ini hardening is not active
             for image in currikiprod-api currikiprod-cron; do
