@@ -1,4 +1,4 @@
-FROM php:8.1-fpm
+FROM php:8.2.35-fpm-bookworm
 
 USER root
 
@@ -45,8 +45,8 @@ RUN usermod -u 1000 www-data
 COPY ./scripts/default-nginx.conf /etc/nginx/sites-available/default
 COPY ./scripts/base_nginx.conf /etc/nginx/nginx.conf
 COPY ./scripts/mime.types /etc/nginx/
-COPY ./scripts/php.ini /etc/php/8.1/fpm/
-COPY ./scripts/php.ini /etc/php/8.1/cli/
+COPY ./scripts/php.ini /etc/php/8.2/fpm/
+COPY ./scripts/php.ini /etc/php/8.2/cli/
 COPY ./scripts/php.ini "$PHP_INI_DIR/php.ini"
 # Security hardening, loaded last so it overrides php.ini. session.upload_progress is pre-emptive for
 # the 2026-10-21 PHP RCEs (CVE-2026-109618/109619, reported in the upload-progress / multipart path).
@@ -66,8 +66,8 @@ RUN printf '%s\n' \
     'session.cookie_httponly = 1' \
     'disable_functions = exec,passthru,shell_exec,system,popen,pcntl_exec' \
     > "$PHP_INI_DIR/conf.d/zz-security.ini"
-COPY ./scripts/base_fpm_www.conf /etc/php/8.1/fpm/pool.d/www.conf
-COPY ./scripts/opcache.ini /etc/php/8.1/fpm/conf.d/opcache.ini
+COPY ./scripts/base_fpm_www.conf /etc/php/8.2/fpm/pool.d/www.conf
+COPY ./scripts/opcache.ini /etc/php/8.2/fpm/conf.d/opcache.ini
 
 
 
