@@ -1,4 +1,4 @@
-FROM php:8.2.35-apache-bookworm
+FROM php:8.2.35-apache
 
 # Add apache and php config for Laravel
 COPY ./site.conf /etc/apache2/sites-available/site.conf
@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y \
     mariadb-client \
     libpng-dev \
     libjpeg62-turbo-dev \
-    libfreetype6-dev \
+    libfreetype-dev \
     locales \
     zip \
     jpegoptim optipng pngquant gifsicle \

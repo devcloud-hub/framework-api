@@ -82,7 +82,7 @@ spec:
             export nr_name=App && \
             sh /usr/local/bin/entrypoint.api.sh && \
             php /var/www/html/artisan storage:link && \
-            php-fpm -c /etc/php/8.1/fpm/php.ini --fpm-config=/usr/local/etc/php-fpm.conf -F -O
+            php-fpm -c /etc/php/8.2/fpm/php.ini --fpm-config=/usr/local/etc/php-fpm.conf -F -O
         resources:
           limits:
             cpu: 600m
