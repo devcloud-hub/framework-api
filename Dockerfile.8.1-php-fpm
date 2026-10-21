@@ -48,6 +48,24 @@ COPY ./scripts/mime.types /etc/nginx/
 COPY ./scripts/php.ini /etc/php/8.1/fpm/
 COPY ./scripts/php.ini /etc/php/8.1/cli/
 COPY ./scripts/php.ini "$PHP_INI_DIR/php.ini"
+# Security hardening, loaded last so it overrides php.ini. session.upload_progress is pre-emptive for
+# the 2026-10-21 PHP RCEs (CVE-2026-109618/109619, reported in the upload-progress / multipart path).
+# proc_open stays enabled: Laravel scheduler, queue and composer need it.
+RUN printf '%s\n' \
+    'expose_php = Off' \
+    'session.upload_progress.enabled = Off' \
+    'allow_url_include = Off' \
+    'display_errors = Off' \
+    'display_startup_errors = Off' \
+    'log_errors = On' \
+    'zend.exception_ignore_args = On' \
+    'mail.add_x_header = Off' \
+    'cgi.fix_pathinfo = 0' \
+    'session.use_strict_mode = 1' \
+    'session.use_only_cookies = 1' \
+    'session.cookie_httponly = 1' \
+    'disable_functions = exec,passthru,shell_exec,system,popen,pcntl_exec' \
+    > "$PHP_INI_DIR/conf.d/zz-security.ini"
 COPY ./scripts/base_fpm_www.conf /etc/php/8.1/fpm/pool.d/www.conf
 COPY ./scripts/opcache.ini /etc/php/8.1/fpm/conf.d/opcache.ini
 

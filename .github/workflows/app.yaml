@@ -21,10 +21,19 @@ jobs:
             cd /home/githubrunner/framework-api
             git pull
             docker build -t currikiprod-api -f Dockerfile.8.1 .
+            docker build -t currikiprod-cron -f Dockerfile.cron.8.1 .
+
+            # Fail before pushing if the zz-security.ini hardening is not active
+            for image in currikiprod-api currikiprod-cron; do
+              docker run --rm --entrypoint php "$image" -r '
+                echo "$argv[1]: PHP ", PHP_VERSION, PHP_EOL;
+                $bad = ini_get("session.upload_progress.enabled") || ini_get("expose_php") || function_exists("shell_exec");
+                exit($bad ? 1 : 0);' "$image"
+            done
+
             docker tag currikiprod-api quay.io/curriki/api:frame-new
             docker push quay.io/curriki/api:frame-new
 
-            docker build -t currikiprod-cron -f Dockerfile.cron.8.1 .
             docker tag currikiprod-cron quay.io/curriki/api:frame-cron-new
             docker push quay.io/curriki/api:frame-cron-new
 
